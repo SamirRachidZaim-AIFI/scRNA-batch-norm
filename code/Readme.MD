@@ -4,9 +4,9 @@ This directory contains the codes to normalize and evaluate the scMerge scRNA ba
 
 ## Scripts 
 
-1.) driver_scMerge.R
-2.) scMerge_helperFunctions.R
-3.) EvaluateNormalization.R 
+- driver_scMerge.R
+- scMerge_helperFunctions.R
+- EvaluateNormalization.R 
 
 ## Further analysis 
 
