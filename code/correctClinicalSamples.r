@@ -169,7 +169,7 @@ visualize_normalization<- function(sub.sce, numComponentsPCA = NULL){
 
 }
 
-quantify_variance <- function(tmp){
+quantify_variance_variancePartition <- function(tmp){
     require(variancePartition)
     # head(tmp)
     geneExpr_norm <-   as.matrix(tmp@assays@data$normalized)
@@ -184,7 +184,7 @@ quantify_variance <- function(tmp){
     vp1 <- sortCols( varPart_pre )
     vp2 <- sortCols( varPart_post )
     
-    outfile = "../../plots/clinical_UMAPs.pdf" 
+    outfile = "../../plots/clinical_variancePartitions.pdf" 
     pdf(file = outfile, width = 7, height = 5)
 
     par(mfrow=c(1,2))
@@ -194,6 +194,31 @@ quantify_variance <- function(tmp){
     
 }
 
+# quantify_variance_variancePartition(sub.sce)
+
+quantify_variance_pvca <- function(tmp){
+    source('../code/pvca.R')
+    
+    gdata <- as.matrix(assay(tmp,'normalized'))
+    gdata <- data.frame(gdata)
+    mdata <- info <- data.frame(tmp@colData)
+
+    names(gdata) <- gsub('X','', names(gdata))
+    
+    sid <- 'barcodes'
+    batch.factors <- c('cellType','batch')
+    threshold <- 0.8
+    interaction=T
+   
+    pvcaObject<-runPVCA(gdata=gdata, mdata=mdata, sid=sid, factors = batch.factors, 0.8, T)
+
+    outfile = "../../plots/clinical_pvca.pdf" 
+    pdf(file = outfile, width = 7, height = 5)
+
+    PlotPVCA(pvcaObject, "PVCA") 
+    dev.off()
+    
+}
 
 
 
