@@ -1,6 +1,7 @@
 ## Load libraries 
 options(warn=-1)
 source('../code/scMerge_helperFunctions.R')
+source('../code/quant_scMerge.R')
 library(SingleCellExperiment)
 require(scMerge)
 require(BiocParallel)
@@ -24,21 +25,26 @@ sce$subjid<-factor(sce$subjid,levels=sort(unique(sce$subjid)))
 
 
 
-### Subsample the # of cells (i.e., by barcode)
-tmp.smpl <- sample(sce$barcodes, 500)
 
-### run on subsampled data
-sub.sce <- sce[,which(sce$barcodes %in% tmp.smpl)]
-sub.sce <- normalizeClinicalSamples(sub.sce, 
+
+
+wrap_varPart <- function(sub.sce, bridging_controls, segList_ensemblGeneID,
+                        frmla='~ cellType + batch', seed){
+    set.seed(seed)
+    ### Subsample the # of cells (i.e., by barcode)
+    sub.sce <- sample_cellTypes(sce, 100, FALSE)
+       
+    sub.sce <- normalizeClinicalSamples(sub.sce, 
                                     bridging_controls,
                                     segList_ensemblGeneID$human$human_scSEG
                                    )
 
-## plot before & after on clinical samples 
+    ## plot before & after on clinical samples 
 
-
-
-
+    ratio_df <- quant_varPart(sub.sce, frmla= frmla)
+    return(ratio_df)
+                              
+}
 
 break
 
