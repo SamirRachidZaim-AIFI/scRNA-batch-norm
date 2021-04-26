@@ -62,8 +62,8 @@ quant_varPart <- function(sce_obc, frmla='~ cellType *batch'){
 
     df <- df*100
 
-    df <- rbind(df, df[2,]/df[1,])               
-    rownames(df) <- c('varPart_Post','varPart_Pre','Ratio')  
+    df <- rbind(df, df[1,]/df[2,])               
+    rownames(df) <- c('varPart_Pre','varPart_Post','Ratio')  
     df <- round(df,2)
     return(df)
 }

@@ -46,6 +46,14 @@ wrap_varPart <- function(sub.sce, bridging_controls, segList_ensemblGeneID,
                               
 }
 
+ratio_list <- mclapply(1:12, function(x) wrap_varPart(sub.sce, bridging_controls, 
+                                                      segList_ensemblGeneID, 
+                                                      frmla='~ cellType + batch +Week', x),
+                       mc.cores=detectCores()-1)
+                       
+                       
+
+
 break
 
 
