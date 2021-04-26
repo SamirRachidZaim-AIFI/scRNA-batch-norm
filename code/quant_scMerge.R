@@ -71,6 +71,49 @@ quant_varPart <- function(sce_obc, frmla='~ cellType *batch'){
 ####################################################################
 ####################################################################
 
+####################################################################
+####################################################################
+###
+###
+
+# Name sample_cellTypes
+
+# Desc 
+#     This function allows you to sample cells by celltype using the
+#     colData (metadata) data frame in an sce object using the 
+#     sampling R package. This function allows you to both sample
+#     cell types proportionally (i.e., stratified) or with 
+#     even-counts. 
+
+# Input
+#     sce_obc a single-cell experiment object containing both logcpm 
+#             and normalized assays 
+#     size integer, total number of cells
+#     stratified boolean, do you want celltypes stratified prop. or evenly
+
+# Output
+#     subsetted metadata data.frame
+
+sample_cellTypes <- function(sce,size=100, stratified=FALSE){
+    require(sampling)
+    
+    probs <- as.data.frame(table(sce$cellType))
+    colnames(probs) <- c('cellType','Frequency')
+    probs$prob <- probs$Frequency/sum(probs$Frequency)
+    
+    prob_vec <- round(probs$prob *size,0)+1
+    
+    if(stratified){
+        stratified_df <- strata(sce@colData, 'cellType', size=prob_vec, method='srswor')
+
+    } else {
+        stratified_df <- strata(sce@colData, 'cellType', size=rep(round(size/13),13), method='srswor')
+    }
+    new_metadf <- getdata(sce@colData, stratified_df)
+    new_sub.sce <- 
+       return()
+}
+
 
 
 cat('Batch ef')
