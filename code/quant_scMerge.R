@@ -53,12 +53,12 @@ quant_varPart <- function(sce_obc, frmla='~ cellType *batch'){
     varPart_post <- fitExtractVarPartModel( geneExpr_norm, varPartfrmla, info )
     varPart_pre <- fitExtractVarPartModel( geneExpr_logcpm, varPartfrmla, info )
 
-    vp1 <- sortCols( varPart_pre )
-    vp2 <- sortCols( varPart_post )
+    vp_pre <- sortCols( varPart_pre )
+    vp_post <- sortCols( varPart_post )
 
 
-    df= data.frame(rbind(colMeans(vp1),
-                     colMeans(vp2)))
+    df= data.frame(rbind(colMeans(vp_pre),
+                     colMeans(vp_post)))
 
     df <- df*100
 
