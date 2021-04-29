@@ -39,10 +39,14 @@ require(BiocParallel)
 # sceLP<-sceLP[which(rowSums(assay(sceLP,2)) != 0), which(colSums(assay(sceLP,2)) != 0)] #dim(sceLP): 19524  9699
 # table(sceLP$cellType,sceLP$batch); dim(sceLP)
 
-correct_bridging_controls <- function(tmp){
+correct_bridging_controls <- function(tmp, 
+                                      exprsname='logcounts', 
+                                      cellType='seurat_pbmc_type',
+                                      batchColname='batch_id'
+                                     ){
     ## remove cols/rows of all zeros
     tmp<-tmp[which(rowSums(assay(tmp,2)) != 0), which(colSums(assay(tmp,2)) != 0)] 
-    n.ct<-length(unique(colData(tmp)$cellType))
+    n.ct<-length(unique(colData(tmp)[,cellType]))
     n.batch<-length(unique(colData(tmp)$batch))
     
     data("segList_ensemblGeneID", package = "scMerge")
@@ -51,14 +55,14 @@ correct_bridging_controls <- function(tmp){
 
     # subsample.tmp <- tmp[,tmp$barcodes %in% sample(tmp$barcodes, 8000)]
     repMat <- scMerge::scReplicate(sce_combine = tmp, 
-                                     batch = tmp$batch, 
+                                     batch = tmp[,batchColname], 
                                      kmeansK = rep(n.ct,n.batch),
-                                     exprs = 'logcpm', 
+                                     exprs = exprsname, 
                                      hvg_exprs = 'counts', 
                                      marker = NULL, 
                                      marker_list = NULL, 
                                      replicate_prop = 1, 
-                                     cell_type = tmp$cell_type, 
+                                     cell_type = tmp[,cellType], 
                                      cell_type_match = FALSE, 
                                      cell_type_inc = NULL, 
                                      dist = 'cor', 
@@ -66,7 +70,7 @@ correct_bridging_controls <- function(tmp){
                                      WV_marker = NULL, 
                                      verbose = TRUE)
 
-    exprs_mat <- SummarizedExperiment::assay(tmp, 'logcpm')
+    exprs_mat <- SummarizedExperiment::assay(tmp, exprsname)
     ctl <- which(row.names(tmp) %in% cmSEGs)
     ruvK <- 1:5
 
@@ -77,9 +81,9 @@ correct_bridging_controls <- function(tmp){
     ruv3res <- scMerge::scRUVIII(Y = exprs_mat, 
                                    M = repMat, 
                                    ctl = ctl, 
-                                   batch=tmp$batch,                          
+                                   batch=tmp[,batchColname],                          
                                    k = ruvK,
-                                   cell_type = tmp$cellType)
+                                   cell_type = tmp[,cellType])
 
     k<-ruv3res$optimal_ruvK
     assay(tmp,"normalized")<-t(ruv3res[[k]]$newY) #newY_mc
