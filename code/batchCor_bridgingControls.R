@@ -84,6 +84,6 @@ correct_bridging_controls <- function(tmp){
     k<-ruv3res$optimal_ruvK
     assay(tmp,"normalized")<-t(ruv3res[[k]]$newY) #newY_mc
     # saveRDS(object=list(sce_object =tmp, scNormalization=ruv3res), '../data/tmp_scMerge.RDS')
-    return(tmp)
+    return(list(sce_object =tmp, scNormalization=ruv3res))
 
 }
