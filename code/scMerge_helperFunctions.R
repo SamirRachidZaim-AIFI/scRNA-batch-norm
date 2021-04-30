@@ -64,8 +64,24 @@ standardize2_mod <- function(Y, batch) {
 ################################################################################################
 
 normalizeClinicalSamples <- function(sub.sce,
-                                     assayName='logcounts'){
+                                     assayName='logcounts',
+                                     batchColName='batch_id',
+                                     comb_bridg_corr){
+    
+        ### USE scMERGE common genes 
+        data("segList_ensemblGeneID", package = "scMerge")
+        seg_index <- segList_ensemblGeneID$human$human_scSEG
+        symbols <- mapIds(org.Hs.eg.db, keys = seg_index, keytype = "ENSEMBL", column="SYMBOL")
 
+        cmSEGs <- intersect(row.names(sub.sce), symbols)
+  
+        ### extract objects for scMerge normalization
+        k<-comb_bridg_corr[[2]]$optimal_ruvK ## k=1
+        falpha<-comb_bridg_corr[[2]][[k]]$fullalpha # dim(falpha) 52 x 20240 (k x G)
+        colnames(falpha)<-rownames(comb_bridg_corr[[1]])
+        alpha <- falpha[seq_len(min(k, nrow(falpha))), , drop = FALSE] # dim(alpha) : 1 x 20240
+        ac <- alpha[,ctl.gn, drop = FALSE] # dim(ac): 1 x 52; sum(is.na(ac[1,]))
+    
         ## Remove any rows & columns that are all 0s
         sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), 
                          which(colSums(assay(sub.sce,2)) != 0)]
@@ -78,7 +94,8 @@ normalizeClinicalSamples <- function(sub.sce,
         ac = ac[,colnames(ac) %in% ctl.gn]
 
         ## Standardize results by batch 
-        scale_res <- standardize2_mod(Y=assay(sub.sce,assayName), batch=sub.sce$batch)
+        scale_res <- standardize2_mod(Y=assay(sub.sce,assayName), 
+                                      batch=colData(sub.sce)[,batchColName])
         stand_tY <- DelayedArray::t(scale_res$stand_Y)
         stand_sd <- sqrt(scale_res$stand_var)
         stand_mean <- scale_res$stand_mean
@@ -86,13 +103,16 @@ normalizeClinicalSamples <- function(sub.sce,
         ## Manually apply RUV-III by estimating W and then Y_hat
         ##  --> W = Y'a_c(a_c a_c')-1
         ##  --> Y_hat = Y-W_alpha
+        Y_c = stand_tY[, ctl.gn]
+        ac_t = t(ac)
 
-        ac_t = DelayedArray::as.matrix(ac)
-        ac = t(ac_t)
-
-        W <- stand_tY[, ctl.gn] %*% ac_t %*% solve(ac %*% ac_t)
+        W <-  Y_c %*% ac_t %*% solve(ac %*% ac_t)
         noise = W %*% alpha
-        newY_mc <- stand_tY - noise[, which(colnames(noise) %in% colnames(stand_tY) )]
+    
+        cmnGenes <- intersect(colnames(noise),colnames(stand_tY))
+    
+        newY_mc <- stand_tY
+        newY_mc[,cmnGenes] <- stand_tY[,cmnGenes] - noise[, cmnGenes]
 
         ## Add back the mean and sd to the normalised data
         newY_mc <-(t(newY_mc) * stand_sd) + stand_mean
