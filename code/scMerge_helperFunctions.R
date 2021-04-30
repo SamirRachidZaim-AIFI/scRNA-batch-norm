@@ -63,7 +63,8 @@ standardize2_mod <- function(Y, batch) {
 ################################################################################################
 ################################################################################################
 
-normalizeClinicalSamples <- function(sub.sce){
+normalizeClinicalSamples <- function(sub.sce,
+                                     assayName='logcounts'){
 
         ## Remove any rows & columns that are all 0s
         sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), 
@@ -77,7 +78,7 @@ normalizeClinicalSamples <- function(sub.sce){
         ac = ac[,colnames(ac) %in% ctl.gn]
 
         ## Standardize results by batch 
-        scale_res <- standardize2_mod(Y=assay(sub.sce,"logcpm"), batch=sub.sce$batch)
+        scale_res <- standardize2_mod(Y=assay(sub.sce,assayName), batch=sub.sce$batch)
         stand_tY <- DelayedArray::t(scale_res$stand_Y)
         stand_sd <- sqrt(scale_res$stand_var)
         stand_mean <- scale_res$stand_mean
