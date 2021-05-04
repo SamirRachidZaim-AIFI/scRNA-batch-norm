@@ -74,7 +74,7 @@ normalizeClinicalSamples <- function(sub.sce,
         symbols <- mapIds(org.Hs.eg.db, keys = seg_index, keytype = "ENSEMBL", column="SYMBOL")
 
         ctl.gn <- Reduce(intersect, list(row.names(sub.sce), 
-                                         symbols,
+                                         unique(symbols),
                                          row.names(comb_bridg_corr$normed_sce)
                                         )
                          )
@@ -116,7 +116,6 @@ normalizeClinicalSamples <- function(sub.sce,
         W <-  Y_c %*% ac_t %*% solve(ac %*% ac_t)
         noise = W %*% alpha
     
-        cmnGenes <- intersect(colnames(noise),colnames(stand_tY))
     
         newY_mc <- stand_tY
         newY_mc[,cmnGenes] <- stand_tY[,cmnGenes] - noise[, cmnGenes]
