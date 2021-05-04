@@ -48,7 +48,6 @@ ruviii_bridging_controls <- function(tmp,
     cmSEGs <- intersect(row.names(tmp), symbols)
     
 
-
     # subsample.tmp <- tmp[,tmp$barcodes %in% sample(tmp$barcodes, 8000)]
     repMat <- scMerge::scReplicate(sce_combine = tmp, 
                                      batch = colData(tmp)[,batchColname], 
@@ -73,7 +72,8 @@ ruviii_bridging_controls <- function(tmp,
     message("Step 2: Performing RUV normalisation. This will take minutes to hours. \n")
 
     ## if you subsample too small a number.. a few rows will be zeros
-    ## which will lead to 0 denoms and NAs 
+    ## which will lead to 0 denoms and NAs when you standardize
+    ## genes element-wise 
     ruv3res <- scMerge::scRUVIII(Y = exprs_mat, 
                                    M = repMat, 
                                    ctl = ctl, 
@@ -84,6 +84,6 @@ ruviii_bridging_controls <- function(tmp,
     k<-ruv3res$optimal_ruvK
     assay(tmp,"normalized")<-t(ruv3res[[k]]$newY) #newY_mc
     # saveRDS(object=list(sce_object =tmp, scNormalization=ruv3res), '../data/tmp_scMerge.RDS')
-    return(list(sce_object =tmp, scNormalization=ruv3res))
+    return(list(normed_sce =tmp, ruv3res=ruv3res))
 
 }
