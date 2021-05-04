@@ -73,7 +73,14 @@ normalizeClinicalSamples <- function(sub.sce,
         seg_index <- segList_ensemblGeneID$human$human_scSEG
         symbols <- mapIds(org.Hs.eg.db, keys = seg_index, keytype = "ENSEMBL", column="SYMBOL")
 
-        cmSEGs <- intersect(row.names(sub.sce), symbols)
+        ctl.gn <- Reduce(intersect, list(row.names(sub.sce), 
+                                         symbols,
+                                         row.names(comb_bridg_corr$normed_sce)
+                                        )
+                         )
+    
+    
+
   
         ### extract objects for scMerge normalization
         k<-comb_bridg_corr[[2]]$optimal_ruvK ## k=1
@@ -87,7 +94,7 @@ normalizeClinicalSamples <- function(sub.sce,
                          which(colSums(assay(sub.sce,2)) != 0)]
 
         ## make sure control genes & SEGs from scMerge present in data
-        ctl.gn <- intersect(cmSEGs, row.names(sub.sce))
+#         ctl.gn <- intersect(cmSEGs, row.names(sub.sce))
 
         ## subset alpha_c (unwanted variation vectors)
         ## contain the control genes to correct against
