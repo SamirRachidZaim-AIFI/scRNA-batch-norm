@@ -116,6 +116,7 @@ normalizeClinicalSamples <- function(sub.sce,
         W <-  Y_c %*% ac_t %*% solve(ac %*% ac_t)
         noise = W %*% alpha
     
+        cmnGenes <- intersect(colnames(noise),colnames(stand_tY))
     
         newY_mc <- stand_tY
         newY_mc[,cmnGenes] <- stand_tY[,cmnGenes] - noise[, cmnGenes]
