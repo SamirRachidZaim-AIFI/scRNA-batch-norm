@@ -35,23 +35,29 @@
 #     decompositions as well as their ratio, to quantify the % of variance
 #     reduction after normalizing the dat.a
 
-quant_varPart <- function(sce_obc, frmla='~ cellType *batch'){
+quant_varPart <- function(sce_obc, 
+                          frmla='~ n_genes + n_reads + 1|batch_id'
+                          ){
+     library(doParallel)
+     cl <- makeCluster(detectCores()-1)
+#     registerDoParallel(cl)
     require(variancePartition)
+    
+    idx <- unique(row.names(sce_obc))
+    
+    sce_obc <- sce_obc[idx]
     # head(tmp)
     geneExpr_norm <- as.matrix(sce_obc@assays@data$normalized)
-    geneExpr_logcpm <- as.matrix(sce_obc@assays@data$logcpm)
+    geneExpr_logcpm <- as.matrix(sce_obc@assays@data$logcounts)
     info <- data.frame(sce_obc@colData)
-    info$cellType <- as.factor(info$cellType)
-    info$batch <- as.factor(info$batch)
-    # dim(geneExpr)
-    # dim(info)
-    # str(info)
-    # str(geneExpr)
-    # head(info)
-    # str(info)
     varPartfrmla <-as.formula(frmla)
-    varPart_post <- fitExtractVarPartModel( geneExpr_norm, varPartfrmla, info )
-    varPart_pre <- fitExtractVarPartModel( geneExpr_logcpm, varPartfrmla, info )
+    
+    varPart_post <- fitExtractVarPartModel( geneExpr_norm, 
+                                           varPartfrmla, 
+                                           info )
+    varPart_pre <- fitExtractVarPartModel(geneExpr_logcpm, 
+                                          varPartfrmla,
+                                          info)
 
     vp_pre <- sortCols( varPart_pre )
     vp_post <- sortCols( varPart_post )
@@ -94,22 +100,26 @@ quant_varPart <- function(sce_obc, frmla='~ cellType *batch'){
 # Output
 #     subsetted metadata data.frame
 
-sample_cellTypes <- function(sce,size=100, stratified=FALSE){
+sample_cellTypes <- function(sce,
+                             size=100, 
+                             stratified=FALSE,
+                             cellType_name='seurat_pbmc_type'
+                            ){
     require(sampling)
     
-    probs <- as.data.frame(table(sce$cellType))
-    colnames(probs) <- c('cellType','Frequency')
+    probs <- as.data.frame(table(sce@colData[cellType_name]))
+    colnames(probs) <- c(cellType_name,'Frequency')
     probs$prob <- probs$Frequency/sum(probs$Frequency)
     
     prob_vec <- round(probs$prob *size,0)+round(size/100,0) #ensures 1% of rare cell types (prevents 0s) 
     
     if(stratified){
-        stratified_df <- strata(sce@colData, 'cellType', 
+        stratified_df <- strata(sce@colData, cellType_name, 
                                 size=prob_vec, method='srswor')
 
     } else {
-        stratified_df <- strata(sce@colData, 'cellType', 
-                                size=rep(round(size/13),length(unique(sce$cellType))), 
+        stratified_df <- strata(sce@colData, cellType_name, 
+                                size=rep(round(size/13),length(unique(sce@colData[cellType_name]))), 
                                 method='srswor')
     }
     new_metadf <- getdata(sce@colData, stratified_df)
