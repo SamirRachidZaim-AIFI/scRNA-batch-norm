@@ -7,16 +7,21 @@
 # Date Modified: 4/19/21
 
 # Desc: 
-#     This file is the "driver" script in scMerge normalization in which a set of datasets,
-#     a bridging control, and parameters are provided in order to "merge" these datasets in 
-#     order to analyze them together. 
+#     This file provides the script to do an ruv-iii correction on the bridging controls. 
 
 #     Technical Details of scMerge are found here: https://www.pnas.org/content/116/20/9775
 #     The bioconductor R package is found here: https://bioconductor.org/packages/release/bioc/html/scMerge.html
 
-# Future Work:
-#     The future work is to parameterize this script and modularize its components
-#     in order to eventually be able to package it into the scRNA normalization pipeline.
+# Inputs
+#     tmp = sce object containing bridging controls to normalize
+#     exprsname= string containing assayname to normalize
+#     cellType = string containing column name with cell type information
+#     batchColname= string containing column name with batch info
+
+# Output
+#     2-dimensional list
+#     - normed_sce = an sce object returned with a 3rd assay containing the normalized expressions  
+#     - ruv3res= an scRUVIII object containing results of scMerge normalization
 
 ################################################################################################
 ################################################################################################

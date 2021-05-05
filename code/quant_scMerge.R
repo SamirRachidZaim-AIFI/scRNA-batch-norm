@@ -111,9 +111,11 @@ sample_cellTypes <- function(sce,
     colnames(probs) <- c(cellType_name,'Frequency')
     probs$prob <- probs$Frequency/sum(probs$Frequency)
     
-    prob_vec <- round(probs$prob *size,0)+round(size/100,0) #ensures 1% of rare cell types (prevents 0s) 
+    prob_vec <- round(probs$prob *size,0)+round(size/1000,0) #ensures .1% of rare cell types (prevents 0s) 
     
     if(stratified){
+       
+        
         stratified_df <- strata(sce@colData, cellType_name, 
                                 size=prob_vec, method='srswor')
 
