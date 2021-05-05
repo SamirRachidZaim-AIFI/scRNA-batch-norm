@@ -40,10 +40,10 @@ normalizeClinicalSamples <- function(sub.sce,
                                          row.names(comb_bridg_corr$normed_sce)
                                         )
                          )
+        ## make sure control genes & SEGs from scMerge present in data
+        ctl.gn <- intersect(ctl.gn, row.names(sub.sce))
+        ctl.gn <- intersect(ctl.gn, row.names(comb_bridg_corr$normed_sce))
     
-    
-
-  
         ### extract objects for scMerge normalization
         k<-comb_bridg_corr[[2]]$optimal_ruvK ## k=1
         falpha<-comb_bridg_corr[[2]][[k]]$fullalpha # dim(falpha) 52 x 20240 (k x G)
@@ -55,8 +55,7 @@ normalizeClinicalSamples <- function(sub.sce,
         sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), 
                          which(colSums(assay(sub.sce,2)) != 0)]
 
-        ## make sure control genes & SEGs from scMerge present in data
-#         ctl.gn <- intersect(cmSEGs, row.names(sub.sce))
+       
 
         ## subset alpha_c (unwanted variation vectors)
         ## contain the control genes to correct against
