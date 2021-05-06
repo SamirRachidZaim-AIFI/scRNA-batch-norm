@@ -41,8 +41,8 @@ normalizeClinicalSamples <- function(sub.sce,
                                         )
                          )
         ## make sure control genes & SEGs from scMerge present in data
-        ctl.gn <- intersect(ctl.gn, row.names(sub.sce))
-        ctl.gn <- intersect(ctl.gn, row.names(comb_bridg_corr$normed_sce))
+#         ctl.gn <- intersect(ctl.gn, row.names(sub.sce))
+#         ctl.gn <- intersect(ctl.gn, row.names(comb_bridg_corr$normed_sce))
     
         ### extract objects for scMerge normalization
         k<-comb_bridg_corr[[2]]$optimal_ruvK ## k=1

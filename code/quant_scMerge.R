@@ -36,17 +36,14 @@
 #     reduction after normalizing the dat.a
 
 quant_varPart <- function(sce_obc, 
-                          frmla='~ n_genes + n_reads + 1|batch_id'
-                          ){
-     library(doParallel)
-     cl <- makeCluster(detectCores()-1)
-#     registerDoParallel(cl)
-    require(variancePartition)
-    
-    idx <- unique(row.names(sce_obc))
-    
+                          frmla='~ n_genes + n_reads + 1|batch_id',
+                          numGenesToAnalyze=100
+                           ){
+
+#     library(BiocParallel)
+#     register(SnowParam(25))  
+    idx <- sample(unique(row.names(sce_obc)),numGenesToAnalyze)
     sce_obc <- sce_obc[idx]
-    # head(tmp)
     geneExpr_norm <- as.matrix(sce_obc@assays@data$normalized)
     geneExpr_logcpm <- as.matrix(sce_obc@assays@data$logcounts)
     info <- data.frame(sce_obc@colData)
@@ -54,7 +51,8 @@ quant_varPart <- function(sce_obc,
     
     varPart_post <- fitExtractVarPartModel( geneExpr_norm, 
                                            varPartfrmla, 
-                                           info )
+                                           info
+                                          )
     varPart_pre <- fitExtractVarPartModel(geneExpr_logcpm, 
                                           varPartfrmla,
                                           info)
