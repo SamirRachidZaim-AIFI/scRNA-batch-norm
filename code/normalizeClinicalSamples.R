@@ -30,6 +30,11 @@ normalizeClinicalSamples <- function(sub.sce,
                                      batchColName='batch_id',
                                      comb_bridg_corr){
     
+          
+        ## Remove any rows & columns that are all 0s
+        sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), 
+                         which(colSums(assay(sub.sce,2)) != 0)]
+
         ### USE scMERGE common genes 
         data("segList_ensemblGeneID", package = "scMerge")
         seg_index <- segList_ensemblGeneID$human$human_scSEG
@@ -50,13 +55,8 @@ normalizeClinicalSamples <- function(sub.sce,
         colnames(falpha)<-rownames(comb_bridg_corr[[1]])
         alpha <- falpha[seq_len(min(k, nrow(falpha))), , drop = FALSE] # dim(alpha) : 1 x 20240
         ac <- alpha[,ctl.gn, drop = FALSE] # dim(ac): 1 x 52; sum(is.na(ac[1,]))
-    
-        ## Remove any rows & columns that are all 0s
-        sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), 
-                         which(colSums(assay(sub.sce,2)) != 0)]
-
+  
        
-
         ## subset alpha_c (unwanted variation vectors)
         ## contain the control genes to correct against
         ac = ac[,colnames(ac) %in% ctl.gn]
