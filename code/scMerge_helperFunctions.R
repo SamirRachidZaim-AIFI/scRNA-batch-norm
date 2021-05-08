@@ -61,6 +61,7 @@ standardize2_mod <- function(Y, batch) {
 }
 
 ################################################################################################
+################################################################################################
 
 visualize_normalization<- function(sub.sce, numComponentsPCA = NULL){
     
@@ -147,6 +148,9 @@ visualize_normalization<- function(sub.sce, numComponentsPCA = NULL){
 
 }
 
+################################################################################################
+################################################################################################
+
 quantify_variance_variancePartition <- function(tmp){
     require(variancePartition)
     # head(tmp)
@@ -171,6 +175,9 @@ quantify_variance_variancePartition <- function(tmp){
     dev.off()
     
 }
+
+################################################################################################
+################################################################################################
 
 # quantify_variance_variancePartition(sub.sce)
 
@@ -198,6 +205,134 @@ quantify_variance_pvca <- function(tmp){
     
 }
 
+
+################################################################################################
+################################################################################################
+
+################################################################################################
+################################################################################################
+
+# The function "plot_batchEffects" is a wrapper around the scater package that provides
+# built-in functionality to plot PCAs, UMAPs and T-SNEs of the dimension-reduced gene 
+# expression space. In this function, you input 
+# - br1_ctls = sce object containing data to reduce and plot 
+# - exprs_values= string name of assay to plot 
+# - numComponents= integer number of PC loadings to include 
+# - type= string indicating whether the samples are bridge controls or clinical samples
+
+plot_batchEffects <- function(br1_ctls, 
+                              exprs_values='logcounts', 
+                              numComponents=50,
+                              type='bridge'
+                             ){
+         #### Calculate Principal components based on pre-batch-correction
+    BC.prior = scater::runPCA(br1_ctls, exprs_values = exprs_values,
+                                  ncomponents=numComponents); 
+    PCs.prior<-data.frame(cbind(reducedDim(BC.prior),
+                                    "cellType"=colData(br1_ctls)[,cellType_name],
+                                    "batch"=colData(br1_ctls)[,batchColName]))
+
+    PCs.prior[,1:numComponents]<-apply(PCs.prior[,1:numComponents],
+                                           2,
+                                           function(x){as.numeric(as.character(x))}
+                                          )
+    
+    ## PCA
+    options(repr.plot.width=10, repr.plot.height=10)
+    png(paste('/home/jupyter/scRNA-batch-norm/bri_analysis/plots/batch_effect_pca_',
+              exprs_values,'_',type,
+              '.png',sep='')
+        )
+    
+    p1pc<-scater::plotPCA(BC.prior, colour_by = cellType_name, shape_by = batchColName)
+    p2pc<-scater::plotPCA(BC.prior, colour_by = batchColName )
+    print(ggarrange(p1pc,p2pc, ncol=1))
+    dev.off()
+
+    ## T-sne
+    set.seed(1000)
+    BC.prior <- scater::runTSNE(BC.prior, perplexity=50, 
+                                dimred="PCA", 
+                                exprs_values = exprs_values,  
+                                n_dimred=numComponents)
+    png(paste('/home/jupyter/scRNA-batch-norm/bri_analysis/plots/batch_effect_tsne_',
+                  exprs_values,'_',type,
+              '.png',sep='')
+        )    
+    p1ts<-scater::plotTSNE(BC.prior, colour_by = cellType_name, shape_by = batchColName)
+    p2ts<-scater::plotTSNE(BC.prior, colour_by = batchColName )
+    print(ggarrange(p1ts,p2ts, ncol=1))
+    dev.off()
+
+    ## UMAP
+    BC.prior <- scater::runUMAP(BC.prior,  
+                                exprs_values = exprs_values,    
+                                n_dimred=numComponents)
+
+    png(paste('/home/jupyter/scRNA-batch-norm/bri_analysis/plots/batch_effect_umap_',
+                  exprs_values,'_',type,
+              '.png',sep='')
+        )    
+    p1um<-scater::plotUMAP(BC.prior,  colour_by = cellType_name, shape_by = batchColName)
+    p2um<-scater::plotUMAP(BC.prior, colour_by = batchColName ) 
+    print(ggarrange(p1um,p2um, ncol=1))
+    dev.off()
+
+    png(paste('/home/jupyter/scRNA-batch-norm/bri_analysis/plots/batch_effect_allPlots_',
+                  exprs_values,'_',type,
+              '.png',sep='')
+        )        
+    print(ggarrange(p2pc,p2ts,p2um, ncol=1))
+    dev.off()
+}
+
+
+################################################################################################
+################################################################################################
+
+
+################################################################################################
+################################################################################################
+
+# The function "transform_and_merge_sce" is a wrapper around the scater package and normalize
+# clinical samples function that transforms the logcounts. Since the raw h5 files do not contain
+# clinical meta data, after normalizing the log-transformed files, this function will return
+# an sce subject with counts, logcounts, and normalized assays, and a full set of metadata variables
+
+# Inputs
+#      - sub.sce = sce object containing data to reduce and plot 
+#      - clin_meta= data frame with clinical metadata
+#      - brdg_ruviii= ruviii normalization object 
+
+# Output
+#     - sub.sce object counts, logcounts, and normalized assays, and a full set of metadata variables
+
+transform_and_merge_sce <- function(sub.sce, 
+                                    clin_meta,
+                                    brdg_ruviii
+                                   ){
+
+    ## create log-normalized assays
+    sub.sce <- scater::logNormCounts(sub.sce)
+
+    ## normalize the data using scMerge 
+    sub.sce <- normalizeClinicalSamples(sub.sce, 
+                                        assayName='logcounts',
+                                        batchColName='batch_id',
+                                        comb_bridg_corr=brdg_ruviii
+                                       )
+
+    ## merge clinical meta data
+    colData(sub.sce)$sample.sampleKitGuid <- gsub("PB([0-9]+)-.+","KT\\1",colData(sub.sce)$pbmc_sample_id)
+    colData(sub.sce) <-  merge(colData(sub.sce), clin_meta,
+                              by='sample.sampleKitGuid',
+                              )
+    
+    dim(merge(colData(sub.sce), clin_meta, by='sample.sampleKitGuid', all.y=TRUE,))
+    
+    ## return normalized sce object
+    return(sub.sce)
+}
 
 
 
