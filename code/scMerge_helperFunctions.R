@@ -234,7 +234,8 @@ sample_pvcaEstimates <- function(sub.sce =sub.sce,
                                  batch.factors = c('batch_id','subject.subjectGuid'),
                                  ncells = 500,
                                  nSims = 5,
-                                 mc.cores=5
+                                 mc.cores=5,
+                                 interaction=FALSE
                                  
                                 ){
     sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), which(colSums(assay(sub.sce,2)) != 0)] 
@@ -245,7 +246,7 @@ sample_pvcaEstimates <- function(sub.sce =sub.sce,
     
 
 
-    interaction=FALSE
+    interaction=interaction
 
     estimatePVCA <- function(ncells ,
                              gdata_logct,
