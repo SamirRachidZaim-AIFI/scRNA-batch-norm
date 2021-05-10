@@ -209,6 +209,92 @@ quantify_variance_pvca <- function(tmp){
 ################################################################################################
 ################################################################################################
 
+
+
+################################################################################################
+################################################################################################
+
+# This function is designed to measure the variance component ratio 
+# pre & post normalization. Given 
+# - a summarized experiment object,
+# - a string indicating the barcode column name
+# - the batch factors to estimate pvca 
+# - the number of cells to sample per simulation
+# - the number of simulations to run,
+# - and the number of cores to use,
+
+# This function will return an object with all the runs,
+# the ratios of the variance components and the individual
+# pre/post outcomes in a list of matrices.
+
+#### quantify variance partition clinical samples
+
+sample_pvcaEstimates <- function(sub.sce =sub.sce,
+                                 sid = 'barcodes',
+                                 batch.factors = c('batch_id','subject.subjectGuid'),
+                                 ncells = 500,
+                                 nSims = 5,
+                                 mc.cores=5
+                                 
+                                ){
+    sub.sce<-sub.sce[which(rowSums(assay(sub.sce,2)) != 0), which(colSums(assay(sub.sce,2)) != 0)] 
+    
+    mdata <- sub.sce@colData
+    br1_gdata_logct <- data.frame(assay(sub.sce, 'logcounts')); colnames(br1_gdata_logct) <- mdata$barcodes
+    br1_gdata_norm <- data.frame(assay(sub.sce, 'normalized')); colnames(br1_gdata_norm) <- mdata$barcodes  
+    
+
+
+    interaction=FALSE
+
+    estimatePVCA <- function(ncells ,
+                             gdata_logct,
+                             gdata_norm 
+                            ){
+        idx <- sample(ncol(gdata_logct),ncells)
+        pvca_logct<-runPVCA(gdata=gdata_logct[,idx], mdata=mdata, 
+                            sid=sid, factors = batch.factors, 
+                            0.75, interaction)
+        pvca_norm<-runPVCA(gdata=gdata_norm[,idx], mdata=mdata, 
+                           sid=sid, factors = batch.factors,
+                           0.75, interaction)
+
+        df <- rbind(pvca_logct,
+                pvca_norm,
+                pvca_logct/pvca_norm
+               )
+        df <- round(df,3)
+        row.names(df) <- c('Pre-norm','Normalized','Ratio')
+        return(df)
+    }
+
+    res <- mclapply(1:nSims, function(x) estimatePVCA(ncells=ncells, 
+                                                   gdata_logct =br1_gdata_logct, 
+                                                   gdata_norm =br1_gdata_norm),
+                    mc.cores=mc.cores
+                    )
+
+
+    res.df <- do.call(rbind,res )
+    ratios <- res.df[row.names(res.df)%in% 'Ratio',]
+    prenorm <- res.df[row.names(res.df)%in% 'Pre-norm',]
+    postnorm <- res.df[row.names(res.df)%in% 'Normalized',]
+    
+    return(list(Results= res.df, 
+                RatioDF= ratios,
+                Prenorm= prenorm, 
+                Postnorm=postnorm)
+          )
+    
+}
+
+
+
+################################################################################################
+################################################################################################
+
+
+
 ################################################################################################
 ################################################################################################
 
