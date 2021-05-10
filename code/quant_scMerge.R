@@ -37,13 +37,16 @@
 
 quant_varPart <- function(sce_obc, 
                           frmla='~ n_genes + n_reads + 1|batch_id',
-                          numGenesToAnalyze=100
+                          numGenesToAnalyze=100,
+                          numCells =5000,
+                          param
                            ){
 
 #     library(BiocParallel)
 #     register(SnowParam(25))  
     idx <- sample(unique(row.names(sce_obc)),numGenesToAnalyze)
-    sce_obc <- sce_obc[idx]
+    idx2<- sample(unique(sce_obc$barcodes), numCells)
+    sce_obc <- sce_obc[idx, sce_obc$barcodes %in% idx2]
     geneExpr_norm <- as.matrix(sce_obc@assays@data$normalized)
     geneExpr_logcpm <- as.matrix(sce_obc@assays@data$logcounts)
     info <- data.frame(sce_obc@colData)
@@ -51,11 +54,13 @@ quant_varPart <- function(sce_obc,
     
     varPart_post <- fitExtractVarPartModel( geneExpr_norm, 
                                            varPartfrmla, 
-                                           info
+                                           info,
+                                           BPPARAM=param
                                           )
     varPart_pre <- fitExtractVarPartModel(geneExpr_logcpm, 
                                           varPartfrmla,
-                                          info)
+                                          info,
+                                         BPPARAM=param)
 
     vp_pre <- sortCols( varPart_pre )
     vp_post <- sortCols( varPart_post )
