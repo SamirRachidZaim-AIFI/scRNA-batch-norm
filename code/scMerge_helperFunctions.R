@@ -255,10 +255,12 @@ sample_pvcaEstimates <- function(sub.sce =sub.sce,
         idx <- sample(ncol(gdata_logct),ncells)
         pvca_logct<-runPVCA(gdata=gdata_logct[,idx], mdata=mdata, 
                             sid=sid, factors = batch.factors, 
-                            0.75, interaction)
+                            threshold=threshold,
+                            interaction=interaction)
         pvca_norm<-runPVCA(gdata=gdata_norm[,idx], mdata=mdata, 
                            sid=sid, factors = batch.factors,
-                           0.75, interaction)
+                           threshold=threshold,
+                           interaction=interaction)
 
         df <- rbind(pvca_logct,
                 pvca_norm,
