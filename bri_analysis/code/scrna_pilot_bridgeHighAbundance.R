@@ -144,6 +144,16 @@ sub.sce <- br1_clin_smps[,br1_clin_smps$barcodes %in% sample(br1_clin_smps$barco
 system.time(sub.sce <- transform_and_merge_sce(sub.sce, sub_clin_meta, br1_ctls))
 
 
+### save demographic info 
+write.csv(table(sub.sce$subject.subjectGuid, sub.sce$batch_id), 
+          file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/batch_subj.csv',row.names=TRUE)
+
+write.csv(table(sub.sce$sample.visitName, sub.sce$batch_id), 
+          file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/visit_batch.csv',row.names=TRUE)
+
+write.csv(table(sub.sce$subject.biologicalSex, sub.sce$batch_id), 
+          file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/sex_batch.csv',row.names=TRUE)
+
 
 ### plot batch effects (tsne, umap, pca)
 plot_batchEffects(sub.sce, 
@@ -180,19 +190,19 @@ require(BiocParallel)
 # threshold <- 0.8
 # interaction=FALSE
 
-estimatePVCA <- function(ncells = 200){
-    idx <- sample(ncol(gdata_logct),ncells)
-    pvca_logct<-runPVCA(gdata=gdata_logct[,idx], mdata=mdata, sid=sid, factors = batch.factors, 0.2, interaction)
-    pvca_norm<-runPVCA(gdata=gdata_norm[,idx], mdata=mdata, sid=sid, factors = batch.factors, 0.2, interaction)
+# estimatePVCA <- function(ncells = 200){
+#     idx <- sample(ncol(gdata_logct),ncells)
+#     pvca_logct<-runPVCA(gdata=gdata_logct[,idx], mdata=mdata, sid=sid, factors = batch.factors, 0.2, interaction)
+#     pvca_norm<-runPVCA(gdata=gdata_norm[,idx], mdata=mdata, sid=sid, factors = batch.factors, 0.2, interaction)
 
-    df <- rbind(pvca_logct,
-            pvca_norm,
-            pvca_logct/pvca_norm
-           )
-    df <- round(df,2)
-    row.names(df) <- c('Pre-norm','Normalized','Ratio')
-    return(df)
-}
+#     df <- rbind(pvca_logct,
+#             pvca_norm,
+#             pvca_logct/pvca_norm
+#            )
+#     df <- round(df,2)
+#     row.names(df) <- c('Pre-norm','Normalized','Ratio')
+#     return(df)
+# }
 
 # res <- mclapply(1:10, function(x) estimatePVCA(),
 #                 mc.cores = 25)
@@ -215,65 +225,6 @@ estimatePVCA <- function(ncells = 200){
 
 ## Define function 
 
-#### quantify variance partition clinical samples
-
-sample_pvcaEstimates <- function(sub.sce =sub.sce,
-                                 sid = 'barcodes',
-                                 batch.factors = c('batch_id','subject.subjectGuid'),
-                                 ncells = 500,
-                                 nSims = 25,
-                                 mc.cores=30
-                                 
-                                ){
-    mdata <- sub.sce@colData
-    br1_gdata_logct <- data.frame(assay(sub.sce, 'logcounts')); colnames(br1_gdata_logct) <- mdata$barcodes
-    br1_gdata_norm <- data.frame(assay(sub.sce, 'normalized')); colnames(br1_gdata_norm) <- mdata$barcodes  
-    
-
-
-    interaction=FALSE
-
-    estimatePVCA <- function(ncells ,
-                             gdata_logct,
-                             gdata_norm 
-                            ){
-        idx <- sample(ncol(gdata_logct),ncells)
-        pvca_logct<-runPVCA(gdata=gdata_logct[,idx], mdata=mdata, 
-                            sid=sid, factors = batch.factors, 
-                            0.75, interaction)
-        pvca_norm<-runPVCA(gdata=gdata_norm[,idx], mdata=mdata, 
-                           sid=sid, factors = batch.factors,
-                           0.75, interaction)
-
-        df <- rbind(pvca_logct,
-                pvca_norm,
-                pvca_logct/pvca_norm
-               )
-        df <- round(df,2)
-        row.names(df) <- c('Pre-norm','Normalized','Ratio')
-        return(df)
-    }
-
-    res <- mclapply(1:nSims, function(x) estimatePVCA(ncells=ncells, 
-                                                   gdata_logct =br1_gdata_logct, 
-                                                   gdata_norm =br1_gdata_norm),
-                    mc.cores=mc.cores
-                    )
-
-
-    res.df <- do.call(rbind,res )
-    ratios <- res.df[row.names(res.df)%in% 'Ratio',]
-    prenorm <- res.df[row.names(res.df)%in% 'Pre-norm',]
-    postnorm <- res.df[row.names(res.df)%in% 'Normalized',]
-    
-    return(list(Results= res.df, 
-                RatioDF= ratios,
-                Prenorm= prenorm, 
-                Postnorm=postnorm)
-          )
-    
-}
-
 
 ####################################################################
 ####################################################################
@@ -281,35 +232,32 @@ sample_pvcaEstimates <- function(sub.sce =sub.sce,
 ####################################################################
 ####################################################################
 
-require(variancePartition)
-### Run variance Partition 
-ncells = 1000
-nsims=5
+# require(variancePartition)
+# ### Run variance Partition 
+# ncells = 1000
+# nsims=5
 
-tmp <- br1_ctls$normed_sce[,br1_ctls$normed_sce$barcodes %in% sample(br1_ctls$normed_sce$barcodes, 5000)]
-tmp<-tmp[which(rowSums(assay(tmp,2)) != 0), which(colSums(assay(tmp,2)) != 0)] 
-
-
-param <- SnowParam(workers = 10, type = "SOCK")
-quant_varPart(tmp,
-             frmla= '~ (1|batch_id)',
-             numGenesToAnalyze=1000,
-             numCells=5000,
-             param=param)
+# tmp <- br1_ctls$normed_sce[,br1_ctls$normed_sce$barcodes %in% sample(br1_ctls$normed_sce$barcodes, 5000)]
+# tmp<-tmp[which(rowSums(assay(tmp,2)) != 0), which(colSums(assay(tmp,2)) != 0)] 
 
 
-
-tmp2 <- sub.sce[,sub.sce$barcodes %in% sample(sub.sce$barcodes, 5000)]
-tmp2<-tmp2[which(rowSums(assay(tmp2,2)) != 0), which(colSums(assay(tmp2,2)) != 0)] 
-
-
-param <- SnowParam(workers = 10, type = "SOCK")
-quant_varPart(tmp2,
-             frmla= '~(1+seurat_cell_type + |batch_id)',
-             numGenesToAnalyze=1000,
-             param=param)
+# param <- SnowParam(workers = 10, type = "SOCK")
+# quant_varPart(tmp,
+#              frmla= '~ (1|batch_id)',
+#              numGenesToAnalyze=1000,
+#              numCells=5000,
+#              param=param)
 
 
+# tmp2 <- sub.sce[,sub.sce$barcodes %in% sample(sub.sce$barcodes, 5000)]
+# tmp2<-tmp2[which(rowSums(assay(tmp2,2)) != 0), which(colSums(assay(tmp2,2)) != 0)] 
+
+
+# param <- SnowParam(workers = 10, type = "SOCK")
+# quant_varPart(tmp2,
+#              frmla= '~(1+seurat_cell_type + |batch_id)',
+#              numGenesToAnalyze=1000,
+#              param=param)
 
 ####################################################################
 ####################################################################
@@ -319,55 +267,57 @@ quant_varPart(tmp2,
 ####################################################################
 
 ### Run PVCA estimates 
-ncells = 1000
+ncells = 2000
 nsims=5
 
-pvca0_br = sample_pvcaEstimates(sub.sce =br1_ctls$normed_sce,
-                             sid = 'barcodes',
-                             batch.factors = c('batch_id'),
-                             ncells = ncells,
-                             nSims = nsims,
-                             mc.cores=5
-                             )
+# pvca0_br = sample_pvcaEstimates(sub.sce =br1_ctls$normed_sce,
+#                              sid = 'barcodes',
+#                              batch.factors = c('batch_id'),
+#                              ncells = ncells,
+#                              nSims = nsims,
+#                              mc.cores=5
+#                              )
 
 
-### run 0th = 'batch id'
-pvca0 = sample_pvcaEstimates(sub.sce =sub.sce,
-                             sid = 'barcodes',
-                             batch.factors = c('batch_id'),
-                             ncells = ncells,
-                             nSims = nsims,
-                             mc.cores=5
-                             )
-pryr::mem_used()
+# ### run 0th = 'batch id'
+# pvca0 = sample_pvcaEstimates(sub.sce =sub.sce,
+#                              sid = 'barcodes',
+#                              batch.factors = c('batch_id'),
+#                              ncells = ncells,
+#                              nSims = nsims,
+#                              mc.cores=5
+#                              )
+# pryr::mem_used()
 
-df = data.frame(rbind( colMeans(pvca0$Prenorm),
-            colMeans(pvca0$Postnorm),
-            colMeans(pvca0$RatioDF)
-           ))
-row.names(df) = c('Prenorm','Postnorm','Ratio')
-colnames(df) <- c('Batch_id','Residuals')
-write.csv(df, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca0.csv')
+# df = data.frame(rbind( colMeans(pvca0$Prenorm),
+#             colMeans(pvca0$Postnorm),
+#             colMeans(pvca0$RatioDF)
+#            ))
+# row.names(df) = c('Prenorm','Postnorm','Ratio')
+# colnames(df) <- c('Batch_id','Residuals')
+# write.csv(df, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca0.csv')
 
 
 
-### run 1 = 'batch id' + subject ID 
-pvca1 = sample_pvcaEstimates(sub.sce =sub.sce,
-                             sid = 'barcodes',
-                             batch.factors = c('batch_id','subject.subjectGuid'),
-                             ncells = ncells,
-                             nSims = nsims,
-                             mc.cores=5
-                             )
+# ### run 1 = 'batch id' + subject ID 
+# pvca1 = sample_pvcaEstimates(sub.sce =sub.sce,
+#                              sid = 'barcodes',
+#                              batch.factors = c('batch_id','subject.subjectGuid'),
+#                              ncells = ncells,
+#                              nSims = nsims,
+#                              mc.cores=5,
+#                              interaction=FALSE
+#                              )
 
-pryr::mem_used()
-df1 = data.frame(rbind( colMeans(pvca1$Prenorm),
-            colMeans(pvca1$Postnorm),
-            colMeans(pvca1$RatioDF)
-           ))
-row.names(df1) = c('Prenorm','Postnorm','Ratio')
-colnames(df1) <- c('Batch_id','Subject','Residuals')
-write.csv(df1, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca1.csv')
+# pryr::mem_used()
+# df1 = data.frame(rbind( colMeans(pvca1$Prenorm),
+#             colMeans(pvca1$Postnorm),
+#             colMeans(pvca1$RatioDF)
+#            ))
+# row.names(df1) = c('Prenorm','Postnorm','Ratio')
+# # colnames(df1) <- c('Batch_id','Subject','Residuals')
+# df1
+# write.csv(df1, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca1.csv')
 
 
 
@@ -376,10 +326,13 @@ write.csv(df1, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca1.c
 
 pvca2 = sample_pvcaEstimates(sub.sce =sub.sce,
                              sid = 'barcodes',
-                             batch.factors = c('batch_id','subject.subjectGuid','subject.biologicalSex'),
+                             batch.factors = c('batch_id','subject.biologicalSex',
+                                              'sample.visitName', 'seurat_pbmc_type'),
                              ncells = ncells,
                              nSims = nsims,
-                             mc.cores=5
+                             mc.cores=5,
+                             interaction=TRUE,
+                             threshold=0.9
                              )
 pryr::mem_used()
 df2 = data.frame(rbind( colMeans(pvca2$Prenorm),
@@ -387,12 +340,34 @@ df2 = data.frame(rbind( colMeans(pvca2$Prenorm),
             colMeans(pvca2$RatioDF)
            ))
 row.names(df2) = c('Prenorm','Postnorm','Ratio')
-colnames(df2) <- c('Batch_id','Subject','Sex', 'Residuals')
-write.csv(df2, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca2.csv')
-
-df
-df1
+# colnames(df2) <- c('Batch_id','Subject','Sex', 'Residuals')
 df2
+write.csv(df2, file='/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca2_interaction.csv')
+
+
+interaction=TRUE
+threshold=0.15
+pvca2 = sample_pvcaEstimates(sub.sce =sub.sce,
+                             sid = 'barcodes',
+                             batch.factors = c('batch_id','subject.biologicalSex', 'subject.subjectGuid',
+                                              'sample.visitName', 'seurat_pbmc_type'),
+                             ncells = ncells,
+                             nSims = nsims,
+                             mc.cores=5,
+                             interaction=interaction,
+                             threshold=threshold
+                             )
+pryr::mem_used()
+df2 = data.frame(rbind( colMeans(pvca2$Prenorm),
+            colMeans(pvca2$Postnorm),
+            colMeans(pvca2$RatioDF)
+           ))
+row.names(df2) = c('Prenorm','Postnorm','Ratio')
+# colnames(df2) <- c('Batch_id','Subject','Sex', 'Residuals')
+df2
+fname= paste('/home/jupyter/scRNA-batch-norm/bri_analysis/results/pvca_interaction',interaction,'pcloading',threshold,'.csv',sep='_')
+write.csv(df2, file=fname)
+
 
 ####################################################################
 ####################################################################
